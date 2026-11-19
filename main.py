@@ -7,7 +7,7 @@ bot = commands.Bot(command_prefix="/", intents=intents)
 
 # --- YOUR IMAGES - KEEP YOUR OLD LINKS IF YOU HAVE THEM ---
 NEYMAR_URL = "https://i.imgur.com/YOUR_NEYMAR_LINK.png"
-RONALDINHO_URL = "https://i.imgur.com/YOUR_RONALDINHO_LINK.png"
+RONALDINHO_URL = "https://i.imgur.com/YOUR_RONALDINHO_LINK..."
 
 def get_rarity(rating):
     r = float(rating)
