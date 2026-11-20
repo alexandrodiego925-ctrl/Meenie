@@ -27,7 +27,6 @@ PACKS = {
     "unob": {"price": 10000, "ovr": (94, 99)},
 }
 
-# PACKS - NO NEYMAR HERE, SPAWN ONLY
 PLAYERS = [
     ("Mbappe", "ST"), ("Haaland", "ST"), ("Bellingham", "CM"), ("Saka", "RW"),
     ("Vini Jr", "LW"), ("Pedri", "CM"), ("Saliba", "CB"), ("Courtois", "GK"),
@@ -36,35 +35,42 @@ PLAYERS = [
     ("Ronaldo", "ST"), ("Messi", "RW"), ("Lewandowski", "ST"),
 ]
 
-# SPAWNS - Neymar Junior ONLY here
 SPAWN_PLAYERS = PLAYERS + [("Neymar Junior", "LW")]
 
 def get_ovr(players):
     return sum(p["ovr"] for p in players) // len(players) if players else 0
+
 def get_balance(uid):
     return balances.get(uid, 1000)
+
 def calc_poss(t1, t2):
-    ovr1 = get_ovr(t1["players"]); ovr2 = get_ovr(t2["players"])
+    ovr1 = get_ovr(t1["players"])
+    ovr2 = get_ovr(t2["players"])
     diff = max(-8, min(8, ovr1 - ovr2))
-    f1 = FORMATION_BONUS.get(t1.get("formation","4-3-3"),0)
-    f2 = FORMATION_BONUS.get(t2.get("formation","4-3-3"),0)
+    f1 = FORMATION_BONUS.get(t1.get("formation", "4-3-3"), 0)
+    f2 = FORMATION_BONUS.get(t2.get("formation", "4-3-3"), 0)
     u1 = 1 if any(p.get("unob") for p in t1["players"]) else 0
     u2 = 1 if any(p.get("unob") for p in t2["players"]) else 0
-    base = 50 + diff + (f1-f2) + (u1-u2) + random.randint(-4,4)
+    base = 50 + diff + (f1 - f2) + (u1 - u2) + random.randint(-4, 4)
     p1 = max(32, min(68, base))
-    return p1, 100-p1, ovr1, ovr2
+    return p1, 100 - p1, ovr1, ovr2
 
 def log_history(lst, text):
-    lst.append(f"{datetime.datetime.now().strftime('%m-%d %H:%M')} - {text}")
-    if len(lst) > 50: lst.pop(0)
+    lst.append(datetime.datetime.now().strftime("%m-%d %H:%M") + " - " + text)
+    if len(lst) > 50:
+        lst.pop(0)
+
+def unob_tag(card):
+    if card.get("unob"):
+        return " UNOB"
+    return ""
 
 @bot.event
 async def on_ready():
     await bot.tree.sync()
     spawn_loop.start()
-    print(f"Online as {bot.user}")
+    print("Online as " + str(bot.user))
 
-# --- SPAWNS ---
 @tasks.loop(minutes=15)
 async def spawn_loop():
     global active_spawn, spawn_channel_id
@@ -72,10 +78,11 @@ async def spawn_loop():
         return
     try:
         ch = bot.get_channel(spawn_channel_id)
-        if not ch: return
-        # 25% chance Neymar Junior, else normal
+        if not ch:
+            return
         if random.random() < 0.25:
-            name, pos = "Neymar Junior", "LW"
+            name = "Neymar Junior"
+            pos = "LW"
             ovr = 100
             is_unob = True
         else:
@@ -84,14 +91,14 @@ async def spawn_loop():
             is_unob = random.random() < 0.15
         active_spawn = {"name": name, "pos": pos, "ovr": ovr, "unob": is_unob}
         if name == "Neymar Junior":
-            await ch.send(f"**🔥 NEYMAR JUNIOR SPAWN! 🔥**\nLW - Neymar Junior - 100 - UNOB\nFirst to type `!claim` gets him!")
+            await ch.send("**NEYMAR JUNIOR SPAWN!**\nLW - Neymar Junior - 100 - UNOB\nFirst to type !claim gets him!")
             try:
                 await ch.send(file=discord.File("neymar_spawn.png"))
             except:
-                await ch.send("Pic 1 missing - upload neymar_spawn.png to GitHub!")
+                await ch.send("Pic 1 missing - upload neymar_spawn.png")
         else:
-            tag = "🔥 UNOB SPAWN!" if is_unob else "✨ RARE SPAWN!"
-            await ch.send(f"**{tag}**\n{pos} - {name} - {ovr}\nFirst to type `!claim` gets it!")
+            tag = "UNOB SPAWN!" if is_unob else "RARE SPAWN!"
+            await ch.send("**" + tag + "**\n" + pos + " - " + name + " - " + str(ovr) + "\nFirst to type !claim gets it!")
     except Exception as e:
         print(e)
 
@@ -99,7 +106,7 @@ async def spawn_loop():
 async def set_spawn(interaction: discord.Interaction, channel: discord.TextChannel):
     global spawn_channel_id
     spawn_channel_id = channel.id
-    await interaction.response.send_message(f"Spawns will now drop in {channel.mention} every ~15 mins!")
+    await interaction.response.send_message("Spawns will now drop in " + channel.mention + " every ~15 mins!")
 
 @bot.tree.command(name="force-spawn", description="Force a spawn now")
 async def force_spawn(interaction: discord.Interaction):
@@ -107,49 +114,52 @@ async def force_spawn(interaction: discord.Interaction):
     if active_spawn:
         await interaction.response.send_message("A spawn is already active! Claim it first.")
         return
-    # Force Neymar for testing - change to random if you want
     if random.random() < 0.5:
-        name, pos, ovr, is_unob = "Neymar Junior", "LW", 100, True
+        name = "Neymar Junior"
+        pos = "LW"
+        ovr = 100
+        is_unob = True
     else:
         name, pos = random.choice(PLAYERS)
         ovr = random.randint(88, 98)
         is_unob = random.random() < 0.2
     active_spawn = {"name": name, "pos": pos, "ovr": ovr, "unob": is_unob}
     if name == "Neymar Junior":
-        await interaction.response.send_message(f"**🔥 NEYMAR JUNIOR SPAWN!**\nLW - Neymar Junior - 100 - UNOB\nType `!claim` to claim!")
+        await interaction.response.send_message("**NEYMAR JUNIOR SPAWN!**\nLW - Neymar Junior - 100 - UNOB\nType !claim to claim!")
         try:
             await interaction.followup.send(file=discord.File("neymar_spawn.png"))
         except:
             pass
     else:
-        await interaction.response.send_message(f"**🔥 SPAWN!**\n{pos} - {name} - {ovr}\nType `!claim` to claim!")
+        await interaction.response.send_message("**SPAWN!**\n" + pos + " - " + name + " - " + str(ovr) + "\nType !claim to claim!")
 
 @bot.event
 async def on_message(message):
-    if message.author.bot: return
+    if message.author.bot:
+        return
     global active_spawn
     if message.content.lower() == "!claim" and active_spawn:
         card = active_spawn.copy()
         active_spawn = None
         uid = str(message.author.id)
-        if uid not in inventories: inventories[uid] = []
+        if uid not in inventories:
+            inventories[uid] = []
         inventories[uid].append(card)
-        await message.channel.send(f"🎉 {message.author.mention} claimed **{card['pos']} - {card['name']} - {card['ovr']}** {'🔥 UNOB' if card['unob'] else ''}!")
+        tag = unob_tag(card)
+        await message.channel.send("🎉 " + message.author.mention + " claimed **" + card["pos"] + " - " + card["name"] + " - " + str(card["ovr"]) + "**" + tag + "!")
         if card["name"] == "Neymar Junior":
-            await message.channel.send(f"Do `/info` to see his full card!")
-        log_history(pack_history, f"{message.author.display_name} claimed spawn {card['name']} {card['ovr']}")
+            await message.channel.send("Do /info to see his full card!")
+        log_history(pack_history, message.author.display_name + " claimed spawn " + card["name"] + " " + str(card["ovr"]))
     await bot.process_commands(message)
 
-# --- INFO - NEYMAR PIC 2 ---
 @bot.tree.command(name="info", description="Info for Neymar Junior - shows Pic 2")
 async def info_cmd(interaction: discord.Interaction):
-    await interaction.response.send_message(f"**NEYMAR JUNIOR - 100 - LW**\nCODE NAME: El MAGO\nPure Brazilian sauce - flicks, nutmegs, rainbows at full sprint.\n🔥 UNOB - SPAWN ONLY - Cannot get from packs")
+    await interaction.response.send_message("**NEYMAR JUNIOR - 100 - LW**\nCODE NAME: El MAGO\nPure Brazilian sauce - flicks, nutmegs, rainbows at full sprint.\nUNOB - SPAWN ONLY - Cannot get from packs")
     try:
         await interaction.followup.send(file=discord.File("neymar_info.png"))
     except:
         await interaction.followup.send("Pic 2 missing - upload neymar_info.png to GitHub!")
 
-# --- TEAM ---
 @bot.tree.command(name="team", description="Show your team")
 async def team_cmd(interaction: discord.Interaction):
     t = teams.get(str(interaction.user.id), {"players": [], "formation": "4-3-3"})
@@ -157,8 +167,9 @@ async def team_cmd(interaction: discord.Interaction):
         await interaction.response.send_message("No team yet. Buy packs / claim spawns!")
         return
     ovr = get_ovr(t["players"])
-    msg = f"**{interaction.user.display_name} | {t['formation']} | OVR {ovr}**\n\n"
-    for p in t["players"]: msg += f"{p['pos']} - {p['name']} - {p['ovr']}\n"
+    msg = "**" + interaction.user.display_name + " | " + t["formation"] + " | OVR " + str(ovr) + "**\n\n"
+    for p in t["players"]:
+        msg += p["pos"] + " - " + p["name"] + " - " + str(p["ovr"]) + "\n"
     await interaction.response.send_message(msg)
 
 @bot.tree.command(name="team-auto", description="Auto pick best 11")
@@ -169,32 +180,35 @@ async def team_auto(interaction: discord.Interaction):
         await interaction.response.send_message("Empty inventory. /buy-pack or claim spawn!")
         return
     best = sorted(inv, key=lambda x: x["ovr"], reverse=True)[:11]
-    if uid not in teams: teams[uid] = {"players": best, "formation": "4-3-3"}
-    else: teams[uid]["players"] = best
-    await interaction.response.send_message(f"Auto team set! OVR: {get_ovr(best)}")
+    if uid not in teams:
+        teams[uid] = {"players": best, "formation": "4-3-3"}
+    else:
+        teams[uid]["players"] = best
+    await interaction.response.send_message("Auto team set! OVR: " + str(get_ovr(best)))
 
 @bot.tree.command(name="team-formation", description="Change formation")
 @app_commands.describe(formation="e.g. 4-3-3")
 async def team_formation(interaction: discord.Interaction, formation: str):
     if formation not in FORMATION_BONUS:
-        await interaction.response.send_message(f"Use: {', '.join(FORMATION_BONUS.keys())}")
+        await interaction.response.send_message("Use: " + ", ".join(FORMATION_BONUS.keys()))
         return
     uid = str(interaction.user.id)
-    if uid not in teams: teams[uid] = {"players": [], "formation": formation}
-    else: teams[uid]["formation"] = formation
-    await interaction.response.send_message(f"Formation -> **{formation}**")
+    if uid not in teams:
+        teams[uid] = {"players": [], "formation": formation}
+    else:
+        teams[uid]["formation"] = formation
+    await interaction.response.send_message("Formation -> **" + formation + "**")
 
-# --- ECONOMY ---
 @bot.tree.command(name="balance", description="Check coins")
 async def balance(interaction: discord.Interaction):
-    await interaction.response.send_message(f"💰 {interaction.user.display_name}: **{get_balance(str(interaction.user.id))} coins**")
+    await interaction.response.send_message("Balance: **" + str(get_balance(str(interaction.user.id))) + " coins**")
 
 @bot.tree.command(name="daily", description="Claim daily coins")
 async def daily(interaction: discord.Interaction):
     uid = str(interaction.user.id)
     reward = random.randint(800, 1500)
     balances[uid] = get_balance(uid) + reward
-    await interaction.response.send_message(f"💰 +{reward} coins! Balance: {balances[uid]}")
+    await interaction.response.send_message("+" + str(reward) + " coins! Balance: " + str(balances[uid]))
 
 @bot.tree.command(name="inventory", description="See your cards")
 async def inventory(interaction: discord.Interaction):
@@ -202,9 +216,9 @@ async def inventory(interaction: discord.Interaction):
     if not inv:
         await interaction.response.send_message("Empty. Buy pack or claim spawn!")
         return
-    msg = f"**{interaction.user.display_name} Inventory ({len(inv)})**\n\n"
+    msg = "**" + interaction.user.display_name + " Inventory (" + str(len(inv)) + ")**\n\n"
     for i, p in enumerate(inv):
-        msg += f"{i+1}. {p['pos']} - {p['name']} - {p['ovr']} {'🔥 UNOB' if p.get('unob') else ''}\n"
+        msg += str(i + 1) + ". " + p["pos"] + " - " + p["name"] + " - " + str(p["ovr"]) + unob_tag(p) + "\n"
     await interaction.response.send_message(msg)
 
 @bot.tree.command(name="sell", description="Sell a card")
@@ -215,16 +229,16 @@ async def sell(interaction: discord.Interaction, card_number: int):
     if card_number < 1 or card_number > len(inv):
         await interaction.response.send_message("Invalid number.")
         return
-    card = inv.pop(card_number-1)
+    card = inv.pop(card_number - 1)
     price = card["ovr"] * 20
     balances[uid] = get_balance(uid) + price
-    await interaction.response.send_message(f"Sold {card['name']} for {price} coins! Balance: {balances[uid]}")
+    await interaction.response.send_message("Sold " + card["name"] + " for " + str(price) + " coins! Balance: " + str(balances[uid]))
 
-# --- PACKS ---
 @bot.tree.command(name="pack", description="Pack shop")
 async def pack_shop(interaction: discord.Interaction):
-    msg = "**📦 PACK SHOP**\n\n"
-    for n, d in PACKS.items(): msg += f"**{n.upper()}** - {d['price']} coins - OVR {d['ovr'][0]}-{d['ovr'][1]}\n"
+    msg = "**PACK SHOP**\n\n"
+    for n, d in PACKS.items():
+        msg += "**" + n.upper() + "** - " + str(d["price"]) + " coins - OVR " + str(d["ovr"][0]) + "-" + str(d["ovr"][1]) + "\n"
     await interaction.response.send_message(msg)
 
 @bot.tree.command(name="buy-pack", description="Buy a pack")
@@ -238,7 +252,7 @@ async def buy_pack(interaction: discord.Interaction, pack_name: str):
     price = PACKS[pack_name]["price"]
     bal = get_balance(uid)
     if bal < price:
-        await interaction.response.send_message(f"Need {price}, you have {bal}. Do /daily")
+        await interaction.response.send_message("Need " + str(price) + ", you have " + str(bal) + ". Do /daily")
         return
     balances[uid] = bal - price
     lo, hi = PACKS[pack_name]["ovr"]
@@ -249,7 +263,10 @@ async def buy_pack(interaction: discord.Interaction, pack_name: str):
         is_unob = (pack_name == "unob")
         card = {"name": name, "pos": pos, "ovr": ovr, "unob": is_unob}
         pulled.append(card)
-        if uid not in inventories: inventories[uid] = []
+        if uid not in inventories:
+            inventories[uid] = []
         inventories[uid].append(card)
-    msg = f"**📦 {pack_name.upper()} PACK!**\n\n"
-    for c in pulled: msg += f"{c['pos']} - {c['name']} - {c['ovr']} {'🔥 UNOB' if
+    msg = "**" + pack_name.upper() + " PACK!**\n\n"
+    for c in pulled:
+        msg += c["pos"] + " - " + c["name"] + " - " + str(c["ovr"]) + unob_tag(c) + "\n"
+    msg += "\nBalance: " + str
