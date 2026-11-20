@@ -4,7 +4,8 @@ from discord import app_commands
 import json, os, random
 
 ADMIN_ID = 1565079902418632704
-TOKEN = "PUT_YOUR_BOT_TOKEN_HERE"
+import os
+TOKEN = os.getenvMTU3MjcxNjU2Mzc1OTM3MDM2MQ.Ghl8DH.Bs0A7C_U2Bo7glitMVgg3ryI9CwdkE7wnl3j3A
 
 # --- CONFIG ---
 PACKS = {
