@@ -455,23 +455,66 @@ class BetView(discord.ui.View):
         self.p1_card = p1_card
         self.locked = set()
         self.ticked = set()
+
     @discord.ui.button(label="🔒 Lock", style=discord.ButtonStyle.primary)
-    async def lock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def lock_btn(self, interaction, button):
         if interaction.user.id not in [self.p1.id, self.p2.id]:
             await interaction.response.send_message("Not your bet!", ephemeral=True)
             return
         self.locked.add(interaction.user.id)
-        await interaction.response.send_message(f"{interaction.user.name} locked 🔒 ({len(self.locked)}/2)")
+        await interaction.response.send_message(f"{interaction.user.name} locked! {len(self.locked)}/2", ephemeral=True)
         if len(self.locked) == 2:
-            await interaction.followup.send("Both locked! Now tap ✅ Tick!")
+            await interaction.followup.send("Both locked! Now both press ✅ Tick to flip!")
+
     @discord.ui.button(label="✅ Tick", style=discord.ButtonStyle.success)
-    async def tick_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def tick_btn(self, interaction, button):
         if interaction.user.id not in self.locked:
-            await interaction.response.send_message("Tap 🔒 Lock first!", ephemeral=True)
+            await interaction.response.send_message("Press Lock first!", ephemeral=True)
             return
         self.ticked.add(interaction.user.id)
-        await interaction.response.send_message(f"{interaction.user.name} ticked ✅ ({len(self.ticked)}/2)")
+        await interaction.response.send_message(f"{interaction.user.name} ticked! {len(self.ticked)}/2", ephemeral=True)
         if len(self.ticked) == 2:
             winner = random.choice([self.p1, self.p2])
-            await interaction.followup.send(f"🎲 50/50... **{winner.name} WINS {
+            loser = self.p2 if winner == self.p1 else self.p1
+            loser_card_name = self.p1_card
+            if loser.id in inventory and loser_card_name in [c['name'] for c in inventory[loser.id]]:
+                for c in inventory[loser.id]:
+                    if c['name'] == loser_card_name:
+                        inventory[loser.id].remove(c)
+                        break
+                inventory[winner.id].append({"name": loser_card_name})
+            await interaction.followup.send(f"🎉 **{winner.name} WINS {loser_card_name}**\n{loser.name} loses the bet!")
+
+@bot.tree.command(name="bet", description="Bet a card 50/50")
+async def bet_cmd(interaction: discord.Interaction, opponent: discord.Member, card: str):
+    uid = interaction.user.id
+    cards = inventory.get(uid, [])
+    found = None
+    for c in cards:
+        if c['name'].lower() == card.lower():
+            found = c['name']
+            break
+    if not found:
+        await interaction.response.send_message("You don't own that card!", ephemeral=True)
+        return
+    view = BetView(interaction.user, opponent, found)
+    await interaction.response.send_message(f"{interaction.user.mention} bets **{found}** vs {opponent.mention}\nBoth press 🔒 Lock, then ✅ Tick!", view=view)
+
+@bot.tree.command(name="trade", description="Trade cards with someone")
+async def trade_cmd(interaction: discord.Interaction, opponent: discord.Member, your_card: str, their_card: str):
+    uid = interaction.user.id
+    oid = opponent.id
+    my_cards = inventory.get(uid, [])
+    their_cards = inventory.get(oid, [])
+    my_found = next((c for c in my_cards if c['name'].lower() == your_card.lower()), None)
+    their_found = next((c for c in their_cards if c['name'].lower() == their_card.lower()), None)
+    if not my_found or not their_found:
+        await interaction.response.send_message("One of those cards isn't owned!", ephemeral=True)
+        return
+    my_cards.remove(my_found)
+    their_cards.remove(their_found)
+    my_cards.append(their_found)
+    their_cards.append(my_found)
+    await interaction.response.send_message(f"🔁 Trade done!\n{interaction.user.name} got **{their_found['name']}**\n{opponent.name} got **{my_found['name']}**")
+
 bot.run(os.getenv("DISCORD_TOKEN"))
