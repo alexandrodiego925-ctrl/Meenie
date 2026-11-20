@@ -5,7 +5,26 @@ import json, os, random
 
 ADMIN_ID = 1565079902418632704
 import os
-TOKEN = os.getenvMTU3MjcxNjU2Mzc1OTM3MDM2MQ.Ghl8DH.Bs0A7C_U2Bo7glitMVgg3ryI9CwdkE7wnl3j3A
+import discord
+from discord.ext import commands
+
+TOKEN = os.getenv("DISCORD_TOKEN")
+
+intents = discord.Intents.default()
+intents.message_content = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"MEENIE DEX ONLINE as {bot.user}")
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send("Pong! Meenie Dex online")
+
+bot.run(TOKEN)
+
 
 # --- CONFIG ---
 PACKS = {
