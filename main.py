@@ -445,5 +445,33 @@ async def inventory_cmd(interaction: discord.Interaction):
     for c in cards:
         embed.add_field(name=f"{c['name']} - {c['rating']}", value=f"{c['rarity']} | Year: {c['year']} | Caught: {c['caught']}", inline=False)
     await interaction.response.send_message(embed=embed)
+import random
 
+class BetView(discord.ui.View):
+    def __init__(self, p1, p2, p1_card):
+        super().__init__(timeout=120)
+        self.p1 = p1
+        self.p2 = p2
+        self.p1_card = p1_card
+        self.locked = set()
+        self.ticked = set()
+    @discord.ui.button(label="🔒 Lock", style=discord.ButtonStyle.primary)
+    async def lock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id not in [self.p1.id, self.p2.id]:
+            await interaction.response.send_message("Not your bet!", ephemeral=True)
+            return
+        self.locked.add(interaction.user.id)
+        await interaction.response.send_message(f"{interaction.user.name} locked 🔒 ({len(self.locked)}/2)")
+        if len(self.locked) == 2:
+            await interaction.followup.send("Both locked! Now tap ✅ Tick!")
+    @discord.ui.button(label="✅ Tick", style=discord.ButtonStyle.success)
+    async def tick_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id not in self.locked:
+            await interaction.response.send_message("Tap 🔒 Lock first!", ephemeral=True)
+            return
+        self.ticked.add(interaction.user.id)
+        await interaction.response.send_message(f"{interaction.user.name} ticked ✅ ({len(self.ticked)}/2)")
+        if len(self.ticked) == 2:
+            winner = random.choice([self.p1, self.p2])
+            await interaction.followup.send(f"🎲 50/50... **{winner.name} WINS {
 bot.run(os.getenv("DISCORD_TOKEN"))
