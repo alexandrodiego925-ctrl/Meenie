@@ -21,6 +21,10 @@ def wal(u): return wallets.setdefault(u, {})
 def team(u): return teams.setdefault(u, {"players": [], "formation": "4-3-3"})
 def ovr(n): return sum(PLAYERS.get(x, {"rating": 80})["rating"] for x in n)//len(n) if n else 0
 def adm(u): return u == OWNER_ID
+def save_players():
+    try:
+        with open("players.json", "w") as f: json.dump(list(PLAYERS.values()), f, indent=2)
+    except: pass
 
 class PV(discord.ui.View):
     def __init__(self, user):
@@ -53,6 +57,15 @@ async def pack(i: discord.Interaction, action: app_commands.Choice[str]):
 async def player(i: discord.Interaction, name: str = None):
     if name not in PLAYERS: return await i.response.send_message("Not found", ephemeral=True)
     p = PLAYERS[name]; e = discord.Embed(title=f"{name} - {p['rating']} {p['rarity']}", description=f"Code: {p['code_name']}\n\n{p['desc']}"); e.set_image(url=p['info_image']); await i.response.send_message(embed=e)
+
+# --- ADD CARD YOURSELF - NO CODE NEEDED ---
+@bot.tree.command(name="admin_add_card", description="[ADMIN] Add new card yourself - paste links")
+async def add_card(i: discord.Interaction, name: str, rating: int, spawn_image: str, info_image: str, rarity: str = "Unob", code_name: str = "", desc: str = ""):
+    if not adm(i.user.id): return await i.response.send_message("Only owner", ephemeral=True)
+    PLAYERS[name] = {"name": name, "rating": rating, "rarity": rarity, "code_name": code_name or name, "desc": desc or "New card", "spawn_image": spawn_image, "info_image": info_image}
+    save_players()
+    e = discord.Embed(title=f"✅ Added {name} - {rating} {rarity}", description=f"Code: {code_name}\n{desc}"); e.set_image(url=info_image)
+    await i.response.send_message(embed=e)
 
 @bot.tree.command(name="admin_spawn", description="[ADMIN] Spawn - type name to claim")
 async def aspawn(i: discord.Interaction, card: str):
